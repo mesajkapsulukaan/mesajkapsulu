@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kayıtlı Veriler (Test)</title>
+    <style>
+        body { 
+            background: #1e1e2e; 
+            color: #a6e3a1; 
+            font-family: 'Courier New', Courier, monospace; 
+            padding: 30px; 
+            margin: 0;
+        }
+        h1 {
+            color: #cba6f7;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #bac2de;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        pre { 
+            background: #181825; 
+            padding: 20px; 
+            border-radius: 8px; 
+            overflow-x: auto; 
+            border: 1px solid #313244;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        button { 
+            padding: 12px 20px; 
+            background: #f38ba8; 
+            color: #11111b; 
+            border: none; 
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer; 
+            margin-bottom: 20px;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #eba0ac;
+        }
+        img {
+            max-width: 200px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #a6e3a1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Local Storage Verileri</h1>
+        <p>Aşağıda kapsüle kaydedilen mesajların arka planda veritabanı (veya localStorage) için nasıl kodlandığını görebilirsin. Bu, JSON formatıdır.</p>
+        
+        <button onclick="clearData()">Tüm Test Verilerini Sil</button>
+        <button onclick="loadData()" style="background: #89b4fa;">Verileri Yenile</button>
+        
+        <pre id="data-output">Veri yükleniyor...</pre>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'mezuniyet_mesajlari_v1';
+
+        function loadData() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            const output = document.getElementById('data-output');
+            
+            if(!data || data === '[]') {
+                output.textContent = "Hiç veri yok (Henüz kimse mesaj yazmamış).";
+            } else {
+                try {
+                    const parsed = JSON.parse(data);
+                    
+                    // Veriyi daha güzel göstermek için fotoğrafları img etiketine çevirelim (opsiyonel)
+                    // Ama kullanıcı kod halini görmek istiyor, o yüzden stringify edip gösteriyoruz.
+                    // Fotoğraf verisi (Base64) çok uzun olacağı için kısaltalım ki okunabilsin.
+                    const displayData = parsed.map(item => {
+                        let clone = {...item};
+                        if(clone.photo) {
+                            clone.photo = clone.photo.substring(0, 50) + "... [ÇOK UZUN FOTOĞRAF VERİSİ - EKRANA SIĞMAZ]";
+                        }
+                        return clone;
+                    });
+
+                    output.textContent = JSON.stringify(displayData, null, 4);
+                } catch(e) {
+                    output.textContent = data;
+                }
+            }
+        }
+        
+        function clearData() {
+            if(confirm('Emin misin? Tüm yazılan mesajlar test verilerinden silinecek!')) {
+                localStorage.removeItem(STORAGE_KEY);
+                loadData();
+            }
+        }
+        
+        loadData();
+    </script>
+</body>
+</html>

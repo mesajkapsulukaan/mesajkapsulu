@@ -319,24 +319,24 @@
         <div class="glass-panel" id="write-section">
             <div class="header">
                 <h1>Zaman Kapsülü</h1>
-                <p>8. Sınıf anılarımız için. 1 Ekim 2026'ya kadar mühürlü.</p>
+                <p>1 Ekim 2026'ya kadar mühürlü.</p>
             </div>
 
             <form id="capsule-form">
                 <div class="input-row">
                     <div class="form-group">
                         <label for="firstName">Adın</label>
-                        <input type="text" id="firstName" placeholder="Örn: Ali" required autocomplete="off">
+                        <input type="text" id="firstName" placeholder="Örn: Kaan Emre" required autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label for="lastName">Soyadın</label>
-                        <input type="text" id="lastName" placeholder="Örn: Yılmaz" required autocomplete="off">
+                        <input type="text" id="lastName" placeholder="Örn: Uçar" required autocomplete="off">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="message">Mesajın / İçinden Geçenler</label>
-                    <textarea id="message" placeholder="Gelecekteki bize ne söylemek istersin? Anılarımız, hislerin..." required></textarea>
+                    <label for="message">Mesajın</label>
+                    <textarea id="message" placeholder="Bir şeyler yaz..." required></textarea>
                 </div>
 
                 <div class="file-upload-wrapper">
@@ -353,7 +353,24 @@
                 <button type="submit" class="btn btn-submit">Kapsüle Ekle 🔒</button>
             </form>
             
-            <button class="btn btn-unlock" onclick="tryUnlock()">Kapsülü Aç (Sadece Kaan için)</button>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-unlock" style="flex: 1;" onclick="showParticipants()">Kimler Yazdı? 👥</button>
+                <button class="btn btn-unlock" style="flex: 1;" onclick="tryUnlock()">Kapsülü Aç 🔓</button>
+            </div>
+        </div>
+
+        <!-- PARTICIPANTS SECTION -->
+        <div class="glass-panel" id="participants-view" style="display: none;">
+            <div class="header">
+                <h1>Kapsüldekiler 👥</h1>
+                <p>Kapsüle anı bırakanlar. (Mesajlar 1 Ekim'e kadar gizli!)</p>
+            </div>
+            
+            <div id="participants-container" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px;">
+                <!-- Bubbles will be injected here -->
+            </div>
+
+            <button class="btn btn-unlock" style="margin-top: 20px;" onclick="goBackFromParticipants()">Geri Dön</button>
         </div>
 
         <!-- VIEW MESSAGES SECTION (Hidden by default) -->
@@ -385,7 +402,9 @@
         const form = document.getElementById('capsule-form');
         const writeSection = document.getElementById('write-section');
         const messagesView = document.getElementById('messages-view');
+        const participantsView = document.getElementById('participants-view');
         const messagesContainer = document.getElementById('messages-container');
+        const participantsContainer = document.getElementById('participants-container');
         const toast = document.getElementById('toast');
         const photoInput = document.getElementById('photo');
         const photoPreview = document.getElementById('photo-preview');
@@ -542,7 +561,34 @@
             writeSection.style.display = 'block';
         }
 
-        // --- 6. HELPERS ---
+        // --- 6. PARTICIPANTS LOGIC ---
+        function showParticipants() {
+            writeSection.style.display = 'none';
+            participantsView.style.display = 'block';
+            
+            const messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            participantsContainer.innerHTML = '';
+            
+            if(messages.length === 0) {
+                participantsContainer.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Henüz kimse yazmadı. İlk sen ol!</p>';
+                return;
+            }
+            
+            // İsimleri baloncuk şeklinde ekle
+            messages.forEach(msg => {
+                const bubble = document.createElement('div');
+                bubble.style.cssText = 'background: rgba(65, 105, 225, 0.2); border: 1px solid rgba(65, 105, 225, 0.5); padding: 10px 20px; border-radius: 30px; color: white; font-size: 1rem; font-weight: 500; backdrop-filter: blur(5px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease;';
+                bubble.textContent = `${escapeHTML(msg.firstName)} ${escapeHTML(msg.lastName)}`;
+                participantsContainer.appendChild(bubble);
+            });
+        }
+
+        function goBackFromParticipants() {
+            participantsView.style.display = 'none';
+            writeSection.style.display = 'block';
+        }
+
+        // --- 7. HELPERS ---
         function showToast(text, type) {
             toast.textContent = text;
             toast.className = `toast show ${type}`;
@@ -565,28 +611,42 @@
             );
         }
 
-        // --- 7. BACKGROUND ANIMATION (Yıldız Efekti) ---
+        // --- 7. BACKGROUND ANIMATION (Hareketli Yıldızlar) ---
         function createStars() {
             const container = document.getElementById('stars-container');
-            for(let i = 0; i < 50; i++) {
+            // Yıldız sayısını arttırdım ki daha güzel görünsün
+            for(let i = 0; i < 100; i++) {
                 const star = document.createElement('div');
                 star.style.position = 'absolute';
-                star.style.width = Math.random() * 3 + 'px';
-                star.style.height = star.style.width;
-                star.style.background = 'rgba(255, 255, 255, ' + Math.random() + ')';
+                const size = Math.random() * 3;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.background = 'white';
                 star.style.borderRadius = '50%';
-                star.style.top = Math.random() * 100 + '%';
-                star.style.left = Math.random() * 100 + '%';
-                star.style.animation = `twinkle ${Math.random() * 3 + 2}s infinite alternate`;
+                
+                star.style.left = Math.random() * 100 + 'vw';
+                
+                // Yukarı doğru yavaşça akma süresi (20 ile 60 saniye arası rastgele)
+                const duration = Math.random() * 40 + 20; 
+                // Ekrana dağınık başlamaları için negatif gecikme süresi
+                const delay = Math.random() * -duration;
+                
+                // Hem yukarı kaysın hem de yanıp sönsün
+                star.style.animation = `moveUp ${duration}s linear ${delay}s infinite, twinkle ${Math.random() * 3 + 2}s infinite alternate`;
+                
                 container.appendChild(star);
             }
         }
         createStars();
     </script>
     <style>
+        @keyframes moveUp {
+            from { top: 110vh; }
+            to { top: -10vh; }
+        }
         @keyframes twinkle {
-            from { opacity: 0.2; }
-            to { opacity: 1; transform: scale(1.5); }
+            from { opacity: 0.1; }
+            to { opacity: 1; box-shadow: 0 0 6px rgba(255,255,255,0.8); }
         }
     </style>
 </body>
