@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8. Sınıf Zaman Kapsülü</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8a2be2;
+            --secondary: #4169e1;
+            --bg-color: #0f0c29;
+            --text-color: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg-color);
+            background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Background Stars */
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            z-index: 1;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transform: translateY(0);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        input, textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--secondary);
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 15px rgba(65, 105, 225, 0.3);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit {
+            background: linear-gradient(45deg, #8a2be2, #4169e1);
+            color: white;
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
+            margin-bottom: 15px;
+        }
+
+        .btn-submit:hover {
+            box-shadow: 0 6px 20px rgba(138, 43, 226, 0.6);
+            transform: scale(1.02);
+        }
+
+        .btn-unlock {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .btn-unlock:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        /* Lock Screen / View Screen */
+        #messages-view {
+            display: none;
+        }
+
+        .message-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .message-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+            color: #00c6ff;
+        }
+
+        .message-card .date {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 15px;
+        }
+
+        .message-card p {
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-weight: 500;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast.error { border-color: #ff4757; }
+        .toast.success { border-color: #2ed573; }
+
+        /* Photo Upload */
+        .file-upload-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .file-upload-wrapper input[type="file"] {
+            display: none;
+        }
+        .file-upload-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px dashed rgba(255, 255, 255, 0.4);
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .file-upload-label:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: var(--secondary);
+        }
+        #preview-container {
+            position: relative;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        #photo-preview {
+            max-width: 100%;
+            height: 150px;
+            object-fit: contain;
+            border-radius: 8px;
+            display: none;
+            border: 2px solid var(--glass-border);
+            background: rgba(0,0,0,0.2);
+        }
+        .btn-remove-photo {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            display: none; /* Initially hidden */
+        }
+        .btn-remove-photo:hover {
+            transform: scale(1.1);
+            background: #ff6b81;
+        }
+        .message-photo {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid var(--glass-border);
+        }
+
+        @media (max-width: 600px) {
+            .input-row { flex-direction: column; gap: 0; }
+            .glass-panel { padding: 30px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Subtle animated background -->
+    <div class="stars" id="stars-container"></div>
+
+    <div class="container">
+        <!-- WRITE MESSAGE SECTION -->
+        <div class="glass-panel" id="write-section">
+            <div class="header">
+                <h1>Zaman Kapsülü</h1>
+                <p>8. Sınıf anılarımız için. 1 Ekim 2026'ya kadar mühürlü.</p>
+            </div>
+
+            <form id="capsule-form">
+                <div class="input-row">
+                    <div class="form-group">
+                        <label for="firstName">Adın</label>
+                        <input type="text" id="firstName" placeholder="Örn: Ali" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Soyadın</label>
+                        <input type="text" id="lastName" placeholder="Örn: Yılmaz" required autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Mesajın / İçinden Geçenler</label>
+                    <textarea id="message" placeholder="Gelecekteki bize ne söylemek istersin? Anılarımız, hislerin..." required></textarea>
+                </div>
+
+                <div class="file-upload-wrapper">
+                    <label class="file-upload-label" for="photo">
+                        <span>📸 Bir Fotoğraf Ekle (İsteğe Bağlı)</span>
+                    </label>
+                    <input type="file" id="photo" accept="image/*">
+                    <div id="preview-container">
+                        <img id="photo-preview" src="" alt="Önizleme">
+                        <button type="button" id="remove-photo-btn" class="btn-remove-photo" title="Fotoğrafı Kaldır">&times;</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-submit">Kapsüle Ekle 🔒</button>
+            </form>
+            
+            <button class="btn btn-unlock" onclick="tryUnlock()">Kapsülü Aç (Sadece Kaan için)</button>
+        </div>
+
+        <!-- VIEW MESSAGES SECTION (Hidden by default) -->
+        <div class="glass-panel" id="messages-view">
+            <div class="header">
+                <h1>Kapsül Açıldı! 🔓</h1>
+                <p>İşte arkadaşlardan gelen tüm mesajlar.</p>
+            </div>
+            
+            <div id="messages-container">
+                <!-- Messages will be injected here via JS -->
+            </div>
+
+            <button class="btn btn-unlock" style="margin-top: 20px;" onclick="goBack()">Geri Dön</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Bildirim mesajı</div>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        // Kapsülün açılacağı tarih (Yıl, Ay-1, Gün). 
+        // JavaScript'te aylar 0'dan başlar (0 = Ocak, 9 = Ekim).
+        // Yani 2026, 9, 1 => 1 Ekim 2026.
+        const UNLOCK_DATE = new Date(2026, 9, 1, 0, 0, 0); 
+        const STORAGE_KEY = 'mezuniyet_mesajlari_v1';
+
+        // --- 2. UI ELEMENTS ---
+        const form = document.getElementById('capsule-form');
+        const writeSection = document.getElementById('write-section');
+        const messagesView = document.getElementById('messages-view');
+        const messagesContainer = document.getElementById('messages-container');
+        const toast = document.getElementById('toast');
+        const photoInput = document.getElementById('photo');
+        const photoPreview = document.getElementById('photo-preview');
+        const removePhotoBtn = document.getElementById('remove-photo-btn');
+
+        let selectedPhotoData = null; // Base64 fotoğraf verisi
+
+        // Fotoğraf seçildiğinde
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    // Fotoğrafı küçültüyoruz ki tarayıcı hafızası dolmasın
+                    compressImage(event.target.result, 800, function(compressedData) {
+                        selectedPhotoData = compressedData;
+                        photoPreview.src = compressedData;
+                        photoPreview.style.display = 'block';
+                        removePhotoBtn.style.display = 'flex';
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Fotoğrafı kaldırma
+        removePhotoBtn.addEventListener('click', function() {
+            selectedPhotoData = null;
+            photoInput.value = ''; // Dosya seçimini iptal et
+            photoPreview.src = '';
+            photoPreview.style.display = 'none';
+            removePhotoBtn.style.display = 'none';
+        });
+
+        // Resmi küçültme fonksiyonu (Canvas kullanarak)
+        function compressImage(base64Str, maxWidth, callback) {
+            const img = new Image();
+            img.src = base64Str;
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                // Kaliteyi %70'e düşürerek JPEG yap
+                callback(canvas.toDataURL('image/jpeg', 0.7));
+            };
+        }
+
+        // --- 3. FORM SUBMIT HANDLER ---
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const messageText = document.getElementById('message').value.trim();
+
+            if(!firstName || !lastName || !messageText) {
+                showToast('Lütfen isim, soyisim ve mesajı doldur.', 'error');
+                return;
+            }
+
+            // Mevcut mesajları al veya boş dizi oluştur
+            let messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            
+            // Yeni mesajı ekle
+            messages.push({
+                firstName: firstName,
+                lastName: lastName,
+                message: messageText,
+                photo: selectedPhotoData,
+                timestamp: new Date().toISOString()
+            });
+
+            // Kaydet
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+                
+                // Formu temizle ve bildirim göster
+                form.reset();
+                selectedPhotoData = null;
+                photoPreview.style.display = 'none';
+                photoPreview.src = '';
+                removePhotoBtn.style.display = 'none';
+                showToast('Mesajın ve fotoğrafın kapsüle eklendi! 🔒', 'success');
+            } catch (error) {
+                showToast('Hata! Çok fazla fotoğraf yüklemiş olabilirsin.', 'error');
+            }
+        });
+
+        // --- 4. UNLOCK LOGIC ---
+        function tryUnlock() {
+            const now = new Date();
+            
+            if (now < UNLOCK_DATE) {
+                // Tarih gelmediyse kaç gün kaldığını hesapla
+                const diffTime = Math.abs(UNLOCK_DATE - now);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                showToast(`Kapsül mühürlü! Açılmasına ${diffDays} gün var. ⏳`, 'error');
+            } else {
+                // Tarih geldiyse şifre sor (güvenlik için)
+                const pass = prompt('Kapsül şifresini giriniz: (Kaan için)');
+                if(pass === 'kaan2026') { // Buraya kendi şifreni belirleyebilirsin
+                    showMessages();
+                } else {
+                    showToast('Şifre yanlış!', 'error');
+                }
+            }
+        }
+
+        // --- 5. SHOW MESSAGES ---
+        function showMessages() {
+            writeSection.style.display = 'none';
+            messagesView.style.display = 'block';
+            
+            const messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            
+            messagesContainer.innerHTML = '';
+            
+            if(messages.length === 0) {
+                messagesContainer.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Henüz kapsülde mesaj yok.</p>';
+                return;
+            }
+
+            // Mesajları ekrana çiz
+            messages.forEach(msg => {
+                const dateObj = new Date(msg.timestamp);
+                const dateStr = dateObj.toLocaleDateString('tr-TR') + ' ' + dateObj.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
+                
+                const card = document.createElement('div');
+                card.className = 'message-card';
+                
+                let photoHTML = msg.photo ? `<img src="${msg.photo}" class="message-photo" alt="Anı Fotoğrafı">` : '';
+                
+                card.innerHTML = `
+                    <h3>${escapeHTML(msg.firstName)} ${escapeHTML(msg.lastName)}</h3>
+                    <div class="date">${dateStr}</div>
+                    <p>${escapeHTML(msg.message).replace(/\n/g, '<br>')}</p>
+                    ${photoHTML}
+                `;
+                messagesContainer.appendChild(card);
+            });
+        }
+
+        function goBack() {
+            messagesView.style.display = 'none';
+            writeSection.style.display = 'block';
+        }
+
+        // --- 6. HELPERS ---
+        function showToast(text, type) {
+            toast.textContent = text;
+            toast.className = `toast show ${type}`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // XSS Koruması için basit HTML encode
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // --- 7. BACKGROUND ANIMATION (Yıldız Efekti) ---
+        function createStars() {
+            const container = document.getElementById('stars-container');
+            for(let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.style.position = 'absolute';
+                star.style.width = Math.random() * 3 + 'px';
+                star.style.height = star.style.width;
+                star.style.background = 'rgba(255, 255, 255, ' + Math.random() + ')';
+                star.style.borderRadius = '50%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.animation = `twinkle ${Math.random() * 3 + 2}s infinite alternate`;
+                container.appendChild(star);
+            }
+        }
+        createStars();
+    </script>
+    <style>
+        @keyframes twinkle {
+            from { opacity: 0.2; }
+            to { opacity: 1; transform: scale(1.5); }
+        }
+    </style>
+</body>
+</html>
