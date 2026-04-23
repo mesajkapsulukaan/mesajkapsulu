@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>8. Sınıf Zaman Kapsülü</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏳</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -258,6 +259,74 @@
             background: rgba(255, 255, 255, 0.2);
             border-color: var(--secondary);
         }
+
+        /* Premium Bubble */
+        .premium-bubble {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(65, 105, 225, 0.2));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px 25px;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .premium-bubble:hover {
+            transform: translateY(-5px) scale(1.05);
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.4), rgba(65, 105, 225, 0.4));
+            border-color: rgba(255,255,255,0.5);
+            box-shadow: 0 10px 40px rgba(65, 105, 225, 0.5);
+        }
+        .bubble-icon {
+            font-size: 1.5rem;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+        .modal-content {
+            background: rgba(30, 30, 46, 0.95);
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+            box-shadow: 0 0 40px rgba(138, 43, 226, 0.5);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .close-modal {
+            position: absolute;
+            top: 15px; right: 20px;
+            font-size: 2rem;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            transition: 0.3s;
+            line-height: 1;
+        }
+        .close-modal:hover { color: white; transform: scale(1.1); }
+
         #preview-container {
             position: relative;
             display: inline-block;
@@ -323,15 +392,9 @@
             </div>
 
             <form id="capsule-form">
-                <div class="input-row">
-                    <div class="form-group">
-                        <label for="firstName">Adın</label>
-                        <input type="text" id="firstName" placeholder="Örn: Kaan Emre" required autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="lastName">Soyadın</label>
-                        <input type="text" id="lastName" placeholder="Örn: Uçar" required autocomplete="off">
-                    </div>
+                <div class="form-group">
+                    <label for="firstName">Adın</label>
+                    <input type="text" id="firstName" placeholder="Örn: Ali" required autocomplete="off">
                 </div>
 
                 <div class="form-group">
@@ -353,38 +416,34 @@
                 <button type="submit" class="btn btn-submit">Kapsüle Ekle 🔒</button>
             </form>
             
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button class="btn btn-unlock" style="flex: 1;" onclick="showParticipants()">Kimler Yazdı? 👥</button>
-                <button class="btn btn-unlock" style="flex: 1;" onclick="tryUnlock()">Kapsülü Aç 🔓</button>
+            <div id="undo-section" style="display: none; margin-top: 15px; background: rgba(255, 71, 87, 0.1); padding: 15px; border-radius: 12px; border: 1px dashed rgba(255, 71, 87, 0.4); text-align: center;">
+                <p style="margin-bottom: 10px; font-size: 0.9rem; color: #ff6b81;">Hata mı yaptın veya fikrini mi değiştirdin?</p>
+                <button type="button" class="btn btn-unlock" style="background: rgba(255, 71, 87, 0.2); border-color: rgba(255, 71, 87, 0.5); color: #ff6b81; padding: 10px;" onclick="undoLastMessage()">Mesajı Geri Al / Düzenle ↩️</button>
             </div>
+
+            <button type="button" class="btn btn-unlock" style="margin-top: 15px;" onclick="tryUnlock()">Kapsülü Aç 🔓</button>
         </div>
 
         <!-- PARTICIPANTS SECTION -->
         <div class="glass-panel" id="participants-view" style="display: none;">
             <div class="header">
-                <h1>Kapsüldekiler 👥</h1>
-                <p>Kapsüle anı bırakanlar. (Mesajlar 1 Ekim'e kadar gizli!)</p>
+                <h1 id="participants-title">Kapsüldekiler 👥</h1>
+                <p id="participants-desc">Kapsüle anı bırakanlar. (Mesajlar 1 Ekim'e kadar gizli!)</p>
             </div>
             
-            <div id="participants-container" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px;">
+            <div id="participants-container" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 20px;">
                 <!-- Bubbles will be injected here -->
             </div>
 
             <button class="btn btn-unlock" style="margin-top: 20px;" onclick="goBackFromParticipants()">Geri Dön</button>
         </div>
+    </div>
 
-        <!-- VIEW MESSAGES SECTION (Hidden by default) -->
-        <div class="glass-panel" id="messages-view">
-            <div class="header">
-                <h1>Kapsül Açıldı! 🔓</h1>
-                <p>İşte arkadaşlardan gelen tüm mesajlar.</p>
-            </div>
-            
-            <div id="messages-container">
-                <!-- Messages will be injected here via JS -->
-            </div>
-
-            <button class="btn btn-unlock" style="margin-top: 20px;" onclick="goBack()">Geri Dön</button>
+    <!-- MESSAGE MODAL -->
+    <div class="modal-overlay" id="message-modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div id="modal-body"></div>
         </div>
     </div>
 
@@ -401,16 +460,17 @@
         // --- 2. UI ELEMENTS ---
         const form = document.getElementById('capsule-form');
         const writeSection = document.getElementById('write-section');
-        const messagesView = document.getElementById('messages-view');
         const participantsView = document.getElementById('participants-view');
-        const messagesContainer = document.getElementById('messages-container');
         const participantsContainer = document.getElementById('participants-container');
+        const participantsTitle = document.getElementById('participants-title');
+        const participantsDesc = document.getElementById('participants-desc');
         const toast = document.getElementById('toast');
         const photoInput = document.getElementById('photo');
         const photoPreview = document.getElementById('photo-preview');
         const removePhotoBtn = document.getElementById('remove-photo-btn');
 
         let selectedPhotoData = null; // Base64 fotoğraf verisi
+        let isAdmin = false; // Admin olarak giriş yapıldı mı?
 
         // Fotoğraf seçildiğinde
         photoInput.addEventListener('change', function(e) {
@@ -462,15 +522,19 @@
         }
 
         // --- 3. FORM SUBMIT HANDLER ---
+        // Kullanıcı forma yazı yazmaya başlarsa geri al bölümünü gizle
+        form.addEventListener('input', function() {
+            document.getElementById('undo-section').style.display = 'none';
+        });
+
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
             const firstName = document.getElementById('firstName').value.trim();
-            const lastName = document.getElementById('lastName').value.trim();
             const messageText = document.getElementById('message').value.trim();
 
-            if(!firstName || !lastName || !messageText) {
-                showToast('Lütfen isim, soyisim ve mesajı doldur.', 'error');
+            if(!firstName || !messageText) {
+                showToast('Lütfen ismini ve mesajını doldur.', 'error');
                 return;
             }
 
@@ -480,7 +544,7 @@
             // Yeni mesajı ekle
             messages.push({
                 firstName: firstName,
-                lastName: lastName,
+                lastName: "", // Kaan sonradan ekleyecek
                 message: messageText,
                 photo: selectedPhotoData,
                 timestamp: new Date().toISOString()
@@ -497,6 +561,14 @@
                 photoPreview.src = '';
                 removePhotoBtn.style.display = 'none';
                 showToast('Mesajın ve fotoğrafın kapsüle eklendi! 🔒', 'success');
+                
+                // Geri al bölümünü göster
+                document.getElementById('undo-section').style.display = 'block';
+                
+                // 10 saniye sonra otomatik olarak gizle
+                setTimeout(() => {
+                    document.getElementById('undo-section').style.display = 'none';
+                }, 10000);
             } catch (error) {
                 showToast('Hata! Çok fazla fotoğraf yüklemiş olabilirsin.', 'error');
             }
@@ -504,67 +576,27 @@
 
         // --- 4. UNLOCK LOGIC ---
         function tryUnlock() {
-            const now = new Date();
-            
-            if (now < UNLOCK_DATE) {
-                // Tarih gelmediyse kaç gün kaldığını hesapla
-                const diffTime = Math.abs(UNLOCK_DATE - now);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                showToast(`Kapsül mühürlü! Açılmasına ${diffDays} gün var. ⏳`, 'error');
+            const pass = prompt('Kapsül şifresini giriniz:');
+            if(pass && (pass === 'Gake0623' || pass === 'gake0623')) {
+                isAdmin = true; // Şifreyi bildiği için admin yetkisi ver
+                showParticipants(true); // Şifre doğruysa kilit açık şekilde baloncukları göster
             } else {
-                // Tarih geldiyse şifre sor (güvenlik için)
-                const pass = prompt('Kapsül şifresini giriniz: (Kaan için)');
-                if(pass === 'kaan2026') { // Buraya kendi şifreni belirleyebilirsin
-                    showMessages();
-                } else {
-                    showToast('Şifre yanlış!', 'error');
-                }
+                if(pass !== null) showToast('Şifre yanlış!', 'error');
             }
         }
 
-        // --- 5. SHOW MESSAGES ---
-        function showMessages() {
-            writeSection.style.display = 'none';
-            messagesView.style.display = 'block';
-            
-            const messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            
-            messagesContainer.innerHTML = '';
-            
-            if(messages.length === 0) {
-                messagesContainer.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Henüz kapsülde mesaj yok.</p>';
-                return;
-            }
-
-            // Mesajları ekrana çiz
-            messages.forEach(msg => {
-                const dateObj = new Date(msg.timestamp);
-                const dateStr = dateObj.toLocaleDateString('tr-TR') + ' ' + dateObj.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
-                
-                const card = document.createElement('div');
-                card.className = 'message-card';
-                
-                let photoHTML = msg.photo ? `<img src="${msg.photo}" class="message-photo" alt="Anı Fotoğrafı">` : '';
-                
-                card.innerHTML = `
-                    <h3>${escapeHTML(msg.firstName)} ${escapeHTML(msg.lastName)}</h3>
-                    <div class="date">${dateStr}</div>
-                    <p>${escapeHTML(msg.message).replace(/\n/g, '<br>')}</p>
-                    ${photoHTML}
-                `;
-                messagesContainer.appendChild(card);
-            });
-        }
-
-        function goBack() {
-            messagesView.style.display = 'none';
-            writeSection.style.display = 'block';
-        }
-
-        // --- 6. PARTICIPANTS LOGIC ---
-        function showParticipants() {
+        // --- 5. PARTICIPANTS & BUBBLES LOGIC ---
+        function showParticipants(isUnlocked = false) {
             writeSection.style.display = 'none';
             participantsView.style.display = 'block';
+            
+            if(isUnlocked) {
+                participantsTitle.innerHTML = 'Kapsül Kasası 🔓';
+                participantsDesc.innerHTML = 'Mesajları okumak için baloncuklara tıkla.';
+            } else {
+                participantsTitle.innerHTML = 'Kapsüldekiler 👥';
+                participantsDesc.innerHTML = 'Kapsüle anı bırakanlar. (Mesajlar 1 Ekim\'e kadar gizli!)';
+            }
             
             const messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
             participantsContainer.innerHTML = '';
@@ -574,11 +606,20 @@
                 return;
             }
             
-            // İsimleri baloncuk şeklinde ekle
-            messages.forEach(msg => {
+            messages.forEach((msg, index) => {
                 const bubble = document.createElement('div');
-                bubble.style.cssText = 'background: rgba(65, 105, 225, 0.2); border: 1px solid rgba(65, 105, 225, 0.5); padding: 10px 20px; border-radius: 30px; color: white; font-size: 1rem; font-weight: 500; backdrop-filter: blur(5px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease;';
-                bubble.textContent = `${escapeHTML(msg.firstName)} ${escapeHTML(msg.lastName)}`;
+                bubble.className = 'premium-bubble';
+                let fullName = escapeHTML(msg.firstName) + (msg.lastName ? ' ' + escapeHTML(msg.lastName) : '');
+                bubble.innerHTML = `<span class="bubble-icon">💌</span> <span>${fullName}</span>`;
+                
+                bubble.onclick = () => {
+                    if(!isUnlocked) {
+                        showToast('Mesajları okuyabilmek için önce Kapsülü Açmalısın! 🔒', 'error');
+                        return;
+                    }
+                    openMessage(index);
+                };
+                
                 participantsContainer.appendChild(bubble);
             });
         }
@@ -586,6 +627,105 @@
         function goBackFromParticipants() {
             participantsView.style.display = 'none';
             writeSection.style.display = 'block';
+        }
+
+        // --- 6. MESSAGE MODAL LOGIC ---
+        function openMessage(index) {
+            const now = new Date();
+            const adminCheck = document.getElementById('firstName').value.trim();
+            
+            // Tarih kontrolü: 1 Ekim gelmediyse ve ADMIN DEĞİLSE
+            if (now < UNLOCK_DATE && !isAdmin && adminCheck !== 'kaanadmin') {
+                const diffTime = Math.abs(UNLOCK_DATE - now);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                showToast(`🔒 Bu mesaj mühürlü! Okumak için ${diffDays} gün daha beklemelisin.`, 'error');
+                return;
+            }
+            
+            const messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            const msg = messages[index];
+            if(!msg) return;
+            
+            const modal = document.getElementById('message-modal');
+            const modalBody = document.getElementById('modal-body');
+            
+            const dateObj = new Date(msg.timestamp);
+            const dateStr = dateObj.toLocaleDateString('tr-TR') + ' ' + dateObj.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
+            
+            let photoHTML = msg.photo ? `<img src="${msg.photo}" class="message-photo" style="width:100%" alt="Anı Fotoğrafı">` : '';
+            let fullName = escapeHTML(msg.firstName) + (msg.lastName ? ' ' + escapeHTML(msg.lastName) : '');
+            
+            let addLastNameBtn = !msg.lastName ? `<button onclick="addLastName(${index})" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.3); color:white; border-radius:6px; padding:4px 10px; font-size:0.8rem; cursor:pointer; margin-left:15px; transition:0.3s;">+ Soyisim Ekle</button>` : '';
+            let deleteBtn = `<button onclick="deleteMessage(${index})" style="background:rgba(255, 71, 87, 0.2); border:1px solid rgba(255, 71, 87, 0.5); color:#ff6b81; border-radius:6px; padding:4px 10px; font-size:0.8rem; cursor:pointer; margin-left:10px; transition:0.3s;">🗑️ Sil</button>`;
+
+            modalBody.innerHTML = `
+                <h2 style="color:#00c6ff; margin-bottom:5px; display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
+                    ${fullName} 
+                    <div style="display:flex;">${addLastNameBtn} ${deleteBtn}</div>
+                </h2>
+                <div style="font-size:0.8rem; color:rgba(255,255,255,0.5); margin-bottom:20px;">${dateStr}</div>
+                <p style="line-height:1.6; color:white; font-size:1.1rem; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">${escapeHTML(msg.message).replace(/\n/g, '<br>')}</p>
+                ${photoHTML}
+            `;
+            
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('message-modal').style.display = 'none';
+        }
+
+        // Kaan'ın sonradan soyisim eklemesi için fonksiyon
+        function addLastName(index) {
+            let messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            if(messages[index]) {
+                const surname = prompt(`${messages[index].firstName} kişisi için soyisim girin:`);
+                if(surname !== null && surname.trim() !== "") {
+                    messages[index].lastName = surname.trim();
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+                    closeModal();
+                    showParticipants(true); // Listeyi yenile
+                }
+            }
+        }
+
+        // Kapsüle eklenen son mesajı geri al
+        function undoLastMessage() {
+            const reason = prompt('Mesajı neden geri alıyorsun? (Örn: Yanlış yazdım, fotoğrafı unuttum vs.)');
+            if(reason === null) return; // İptale basıldı
+            
+            let messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            if(messages.length > 0) {
+                // Son eklenen mesajı diziden çıkar
+                const lastMsg = messages.pop();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+                
+                // Formu çıkarılan mesajla geri doldur (düzenleyebilmesi için)
+                document.getElementById('firstName').value = lastMsg.firstName;
+                document.getElementById('message').value = lastMsg.message;
+                
+                if(lastMsg.photo) {
+                    selectedPhotoData = lastMsg.photo;
+                    photoPreview.src = lastMsg.photo;
+                    photoPreview.style.display = 'block';
+                    removePhotoBtn.style.display = 'flex';
+                }
+                
+                document.getElementById('undo-section').style.display = 'none';
+                showToast('Mesaj kapsülden geri alındı. Düzenleyip tekrar ekleyebilirsin!', 'success');
+            }
+        }
+
+        // Adminin mesajı tamamen silmesi
+        function deleteMessage(index) {
+            if(confirm("Bu mesajı kapsülden TAMAMEN silmek istediğine emin misin? (Bu işlem geri alınamaz!)")) {
+                let messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+                messages.splice(index, 1);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+                closeModal();
+                showParticipants(true); // Listeyi yenile
+                showToast('Mesaj başarıyla silindi 🗑️', 'success');
+            }
         }
 
         // --- 7. HELPERS ---
