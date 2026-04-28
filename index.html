@@ -223,7 +223,7 @@
             font-weight: 500;
             opacity: 0;
             transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            z-index: 1000;
+            z-index: 3000;
         }
 
         .toast.show {
@@ -656,6 +656,15 @@
         }
 
         // --- 7. MESSAGE MODAL LOGIC ---
+        function showDaysLeft() {
+            const now = new Date();
+            if (now < UNLOCK_DATE) {
+                const diffTime = Math.abs(UNLOCK_DATE - now);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                showToast(`🔒 Bu mesaj mühürlü! Okumak için ${diffDays} gün kaldı.`, 'error');
+            }
+        }
+
         function openMessage(msgId) {
             const now = new Date();
             const adminCheck = document.getElementById('firstName').value.trim();
@@ -679,7 +688,38 @@
                 const dateObj = new Date(msg.timestamp);
                 const dateStr = dateObj.toLocaleDateString('tr-TR') + ' ' + dateObj.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
                 
-                let photoHTML = msg.photo ? `<img src="${msg.photo}" class="message-photo" style="width:100%" alt="Anı Fotoğrafı">` : '';
+                let isLocked = now < UNLOCK_DATE;
+                let messageContent = escapeHTML(msg.message).replace(/\n/g, '<br>');
+                let messageHTML = '';
+                
+                if (isLocked) {
+                    messageHTML = `
+                        <div style="position: relative; margin-top: 15px;">
+                            <p style="line-height:1.6; color:white; font-size:1.1rem; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); filter: blur(8px); user-select: none; pointer-events: none;">${messageContent}</p>
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 10;">
+                                <button onclick="showDaysLeft()" style="background: linear-gradient(45deg, #8a2be2, #4169e1); color: white; border: none; padding: 12px 24px; border-radius: 50px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4); transition: 0.3s;">👁️ Mesajı Gör</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    messageHTML = `<p style="line-height:1.6; color:white; font-size:1.1rem; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">${messageContent}</p>`;
+                }
+
+                let photoHTML = '';
+                if (msg.photo) {
+                    if (isLocked) {
+                        photoHTML = `
+                        <div style="position: relative; margin-top: 15px;">
+                            <img src="${msg.photo}" class="message-photo" style="width:100%; filter: blur(15px); user-select: none; pointer-events: none;" alt="Anı Fotoğrafı">
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 10;">
+                                <button onclick="showDaysLeft()" style="background: linear-gradient(45deg, #8a2be2, #4169e1); color: white; border: none; padding: 10px 20px; border-radius: 50px; font-size: 0.9rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4); transition: 0.3s;">📸 Fotoğrafı Gör</button>
+                            </div>
+                        </div>`;
+                    } else {
+                        photoHTML = `<img src="${msg.photo}" class="message-photo" style="width:100%" alt="Anı Fotoğrafı">`;
+                    }
+                }
+
                 let fullName = escapeHTML(msg.firstName) + (msg.lastName ? ' ' + escapeHTML(msg.lastName) : '');
                 
                 let addLastNameBtn = !msg.lastName ? `<button onclick="addLastName('${msgId}')" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.3); color:white; border-radius:6px; padding:4px 10px; font-size:0.8rem; cursor:pointer; margin-left:15px; transition:0.3s;">+ Soyisim Ekle</button>` : '';
@@ -691,7 +731,7 @@
                         <div style="display:flex;">${addLastNameBtn} ${deleteBtn}</div>
                     </h2>
                     <div style="font-size:0.8rem; color:rgba(255,255,255,0.5); margin-bottom:20px;">${dateStr}</div>
-                    <p style="line-height:1.6; color:white; font-size:1.1rem; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">${escapeHTML(msg.message).replace(/\n/g, '<br>')}</p>
+                    ${messageHTML}
                     ${photoHTML}
                 `;
                 
