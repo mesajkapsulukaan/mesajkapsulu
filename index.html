@@ -449,15 +449,35 @@
 
     <div class="toast" id="toast">Bildirim mesajı</div>
 
+    <!-- Firebase SDK (Version 8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <script>
-        // --- 1. CONFIGURATION ---
+        // --- 1. FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCRD7ByFy9SzzUc43a59mJRSGXGBxBTtM",
+            authDomain: "zaman-kapsulum.firebaseapp.com",
+            databaseURL: "https://zaman-kapsulum-default-rtdb.firebaseio.com",
+            projectId: "zaman-kapsulum",
+            storageBucket: "zaman-kapsulum.firebasestorage.app",
+            messagingSenderId: "39669367915",
+            appId: "1:39669367915:web:6a69be7df549f3c4651d2e"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const messagesRef = database.ref('kapsul_mesajlari');
+
+        // --- 2. CONFIGURATION ---
         // Kapsülün açılacağı tarih (Yıl, Ay-1, Gün). 
         // JavaScript'te aylar 0'dan başlar (0 = Ocak, 9 = Ekim).
         // Yani 2026, 9, 1 => 1 Ekim 2026.
         const UNLOCK_DATE = new Date(2026, 9, 1, 0, 0, 0); 
-        const STORAGE_KEY = 'mezuniyet_mesajlari_v1';
+        
+        let lastPushedMessageId = null; // Geri alma işlemi için tutulur
 
-        // --- 2. UI ELEMENTS ---
+        // --- 3. UI ELEMENTS ---
         const form = document.getElementById('capsule-form');
         const writeSection = document.getElementById('write-section');
         const participantsView = document.getElementById('participants-view');
@@ -478,7 +498,7 @@
             if(file) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
-                    // Fotoğrafı küçültüyoruz ki tarayıcı hafızası dolmasın
+                    // Fotoğrafı küçültüyoruz ki veritabanı dolmasın
                     compressImage(event.target.result, 800, function(compressedData) {
                         selectedPhotoData = compressedData;
                         photoPreview.src = compressedData;
@@ -521,7 +541,7 @@
             };
         }
 
-        // --- 3. FORM SUBMIT HANDLER ---
+        // --- 4. FORM SUBMIT HANDLER ---
         // Kullanıcı forma yazı yazmaya başlarsa geri al bölümünü gizle
         form.addEventListener('input', function() {
             document.getElementById('undo-section').style.display = 'none';
@@ -538,21 +558,16 @@
                 return;
             }
 
-            // Mevcut mesajları al veya boş dizi oluştur
-            let messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            
-            // Yeni mesajı ekle
-            messages.push({
+            // Yeni mesajı Firebase'e ekle
+            const newMsgRef = messagesRef.push();
+            newMsgRef.set({
                 firstName: firstName,
                 lastName: "", // Kaan sonradan ekleyecek
                 message: messageText,
-                photo: selectedPhotoData,
+                photo: selectedPhotoData || null,
                 timestamp: new Date().toISOString()
-            });
-
-            // Kaydet
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+            }).then(() => {
+                lastPushedMessageId = newMsgRef.key; // Geri al butonu için ID'yi sakla
                 
                 // Formu temizle ve bildirim göster
                 form.reset();
@@ -569,12 +584,13 @@
                 setTimeout(() => {
                     document.getElementById('undo-section').style.display = 'none';
                 }, 10000);
-            } catch (error) {
-                showToast('Hata! Çok fazla fotoğraf yüklemiş olabilirsin.', 'error');
-            }
+            }).catch((error) => {
+                showToast('Hata! Veritabanına bağlanılamadı.', 'error');
+                console.error(error);
+            });
         });
 
-        // --- 4. UNLOCK LOGIC ---
+        // --- 5. UNLOCK LOGIC ---
         function tryUnlock() {
             const pass = prompt('Kapsül şifresini giriniz:');
             if(pass && (pass === 'Gake0623' || pass === 'gake0623')) {
@@ -585,7 +601,7 @@
             }
         }
 
-        // --- 5. PARTICIPANTS & BUBBLES LOGIC ---
+        // --- 6. PARTICIPANTS & BUBBLES LOGIC ---
         function showParticipants(isUnlocked = false) {
             writeSection.style.display = 'none';
             participantsView.style.display = 'block';
@@ -598,29 +614,39 @@
                 participantsDesc.innerHTML = 'Kapsüle anı bırakanlar. (Mesajlar 1 Ekim\'e kadar gizli!)';
             }
             
-            const messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            participantsContainer.innerHTML = '';
+            participantsContainer.innerHTML = '<p style="text-align:center; color:white;">Yükleniyor...</p>';
             
-            if(messages.length === 0) {
-                participantsContainer.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Henüz kimse yazmadı. İlk sen ol!</p>';
-                return;
-            }
-            
-            messages.forEach((msg, index) => {
-                const bubble = document.createElement('div');
-                bubble.className = 'premium-bubble';
-                let fullName = escapeHTML(msg.firstName) + (msg.lastName ? ' ' + escapeHTML(msg.lastName) : '');
-                bubble.innerHTML = `<span class="bubble-icon">💌</span> <span>${fullName}</span>`;
+            // Verileri Firebase'den çek
+            messagesRef.once('value').then(snapshot => {
+                participantsContainer.innerHTML = '';
+                const data = snapshot.val();
                 
-                bubble.onclick = () => {
-                    if(!isUnlocked) {
-                        showToast('Mesajları okuyabilmek için önce Kapsülü Açmalısın! 🔒', 'error');
-                        return;
-                    }
-                    openMessage(index);
-                };
+                if(!data) {
+                    participantsContainer.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Henüz kimse yazmadı. İlk sen ol!</p>';
+                    return;
+                }
                 
-                participantsContainer.appendChild(bubble);
+                // Gelen objeyi diziye çevir
+                const messagesList = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                
+                messagesList.forEach((msg) => {
+                    const bubble = document.createElement('div');
+                    bubble.className = 'premium-bubble';
+                    let fullName = escapeHTML(msg.firstName) + (msg.lastName ? ' ' + escapeHTML(msg.lastName) : '');
+                    bubble.innerHTML = `<span class="bubble-icon">💌</span> <span>${fullName}</span>`;
+                    
+                    bubble.onclick = () => {
+                        if(!isUnlocked) {
+                            showToast('Mesajları okuyabilmek için önce Kapsülü Açmalısın! 🔒', 'error');
+                            return;
+                        }
+                        openMessage(msg.id);
+                    };
+                    
+                    participantsContainer.appendChild(bubble);
+                });
+            }).catch(error => {
+                participantsContainer.innerHTML = '<p style="text-align:center; color:#ff4757;">Hata oluştu.</p>';
             });
         }
 
@@ -629,8 +655,8 @@
             writeSection.style.display = 'block';
         }
 
-        // --- 6. MESSAGE MODAL LOGIC ---
-        function openMessage(index) {
+        // --- 7. MESSAGE MODAL LOGIC ---
+        function openMessage(msgId) {
             const now = new Date();
             const adminCheck = document.getElementById('firstName').value.trim();
             
@@ -642,33 +668,35 @@
                 return;
             }
             
-            const messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            const msg = messages[index];
-            if(!msg) return;
-            
-            const modal = document.getElementById('message-modal');
-            const modalBody = document.getElementById('modal-body');
-            
-            const dateObj = new Date(msg.timestamp);
-            const dateStr = dateObj.toLocaleDateString('tr-TR') + ' ' + dateObj.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
-            
-            let photoHTML = msg.photo ? `<img src="${msg.photo}" class="message-photo" style="width:100%" alt="Anı Fotoğrafı">` : '';
-            let fullName = escapeHTML(msg.firstName) + (msg.lastName ? ' ' + escapeHTML(msg.lastName) : '');
-            
-            let addLastNameBtn = !msg.lastName ? `<button onclick="addLastName(${index})" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.3); color:white; border-radius:6px; padding:4px 10px; font-size:0.8rem; cursor:pointer; margin-left:15px; transition:0.3s;">+ Soyisim Ekle</button>` : '';
-            let deleteBtn = `<button onclick="deleteMessage(${index})" style="background:rgba(255, 71, 87, 0.2); border:1px solid rgba(255, 71, 87, 0.5); color:#ff6b81; border-radius:6px; padding:4px 10px; font-size:0.8rem; cursor:pointer; margin-left:10px; transition:0.3s;">🗑️ Sil</button>`;
+            // ID'ye göre Firebase'den tek bir mesajı çek
+            messagesRef.child(msgId).once('value').then(snapshot => {
+                const msg = snapshot.val();
+                if(!msg) return;
+                
+                const modal = document.getElementById('message-modal');
+                const modalBody = document.getElementById('modal-body');
+                
+                const dateObj = new Date(msg.timestamp);
+                const dateStr = dateObj.toLocaleDateString('tr-TR') + ' ' + dateObj.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
+                
+                let photoHTML = msg.photo ? `<img src="${msg.photo}" class="message-photo" style="width:100%" alt="Anı Fotoğrafı">` : '';
+                let fullName = escapeHTML(msg.firstName) + (msg.lastName ? ' ' + escapeHTML(msg.lastName) : '');
+                
+                let addLastNameBtn = !msg.lastName ? `<button onclick="addLastName('${msgId}')" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.3); color:white; border-radius:6px; padding:4px 10px; font-size:0.8rem; cursor:pointer; margin-left:15px; transition:0.3s;">+ Soyisim Ekle</button>` : '';
+                let deleteBtn = `<button onclick="deleteMessage('${msgId}')" style="background:rgba(255, 71, 87, 0.2); border:1px solid rgba(255, 71, 87, 0.5); color:#ff6b81; border-radius:6px; padding:4px 10px; font-size:0.8rem; cursor:pointer; margin-left:10px; transition:0.3s;">🗑️ Sil</button>`;
 
-            modalBody.innerHTML = `
-                <h2 style="color:#00c6ff; margin-bottom:5px; display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
-                    ${fullName} 
-                    <div style="display:flex;">${addLastNameBtn} ${deleteBtn}</div>
-                </h2>
-                <div style="font-size:0.8rem; color:rgba(255,255,255,0.5); margin-bottom:20px;">${dateStr}</div>
-                <p style="line-height:1.6; color:white; font-size:1.1rem; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">${escapeHTML(msg.message).replace(/\n/g, '<br>')}</p>
-                ${photoHTML}
-            `;
-            
-            modal.style.display = 'flex';
+                modalBody.innerHTML = `
+                    <h2 style="color:#00c6ff; margin-bottom:5px; display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
+                        ${fullName} 
+                        <div style="display:flex;">${addLastNameBtn} ${deleteBtn}</div>
+                    </h2>
+                    <div style="font-size:0.8rem; color:rgba(255,255,255,0.5); margin-bottom:20px;">${dateStr}</div>
+                    <p style="line-height:1.6; color:white; font-size:1.1rem; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">${escapeHTML(msg.message).replace(/\n/g, '<br>')}</p>
+                    ${photoHTML}
+                `;
+                
+                modal.style.display = 'flex';
+            });
         }
 
         function closeModal() {
@@ -676,17 +704,20 @@
         }
 
         // Kaan'ın sonradan soyisim eklemesi için fonksiyon
-        function addLastName(index) {
-            let messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            if(messages[index]) {
-                const surname = prompt(`${messages[index].firstName} kişisi için soyisim girin:`);
-                if(surname !== null && surname.trim() !== "") {
-                    messages[index].lastName = surname.trim();
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-                    closeModal();
-                    showParticipants(true); // Listeyi yenile
+        function addLastName(msgId) {
+            messagesRef.child(msgId).once('value').then(snapshot => {
+                const msg = snapshot.val();
+                if(msg) {
+                    const surname = prompt(`${msg.firstName} kişisi için soyisim girin:`);
+                    if(surname !== null && surname.trim() !== "") {
+                        // Sadece o objenin 'lastName' alanını güncelliyoruz
+                        messagesRef.child(msgId).update({ lastName: surname.trim() }).then(() => {
+                            closeModal();
+                            showParticipants(true); // Listeyi yenile
+                        });
+                    }
                 }
-            }
+            });
         }
 
         // Kapsüle eklenen son mesajı geri al
@@ -694,41 +725,47 @@
             const reason = prompt('Mesajı neden geri alıyorsun? (Örn: Yanlış yazdım, fotoğrafı unuttum vs.)');
             if(reason === null) return; // İptale basıldı
             
-            let messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            if(messages.length > 0) {
-                // Son eklenen mesajı diziden çıkar
-                const lastMsg = messages.pop();
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-                
-                // Formu çıkarılan mesajla geri doldur (düzenleyebilmesi için)
-                document.getElementById('firstName').value = lastMsg.firstName;
-                document.getElementById('message').value = lastMsg.message;
-                
-                if(lastMsg.photo) {
-                    selectedPhotoData = lastMsg.photo;
-                    photoPreview.src = lastMsg.photo;
-                    photoPreview.style.display = 'block';
-                    removePhotoBtn.style.display = 'flex';
-                }
-                
-                document.getElementById('undo-section').style.display = 'none';
-                showToast('Mesaj kapsülden geri alındı. Düzenleyip tekrar ekleyebilirsin!', 'success');
+            if(lastPushedMessageId) {
+                messagesRef.child(lastPushedMessageId).once('value').then(snapshot => {
+                    const lastMsg = snapshot.val();
+                    if(lastMsg) {
+                        // Veritabanından sil
+                        messagesRef.child(lastPushedMessageId).remove().then(() => {
+                            lastPushedMessageId = null; // ID'yi sıfırla
+                            
+                            // Formu çıkarılan mesajla geri doldur (düzenleyebilmesi için)
+                            document.getElementById('firstName').value = lastMsg.firstName || '';
+                            document.getElementById('message').value = lastMsg.message || '';
+                            
+                            if(lastMsg.photo) {
+                                selectedPhotoData = lastMsg.photo;
+                                photoPreview.src = lastMsg.photo;
+                                photoPreview.style.display = 'block';
+                                removePhotoBtn.style.display = 'flex';
+                            }
+                            
+                            document.getElementById('undo-section').style.display = 'none';
+                            showToast('Mesaj kapsülden geri alındı. Düzenleyip tekrar ekleyebilirsin!', 'success');
+                        });
+                    }
+                });
+            } else {
+                 showToast('Geri alınacak mesaj bulunamadı veya süre doldu.', 'error');
             }
         }
 
         // Adminin mesajı tamamen silmesi
-        function deleteMessage(index) {
+        function deleteMessage(msgId) {
             if(confirm("Bu mesajı kapsülden TAMAMEN silmek istediğine emin misin? (Bu işlem geri alınamaz!)")) {
-                let messages = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-                messages.splice(index, 1);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-                closeModal();
-                showParticipants(true); // Listeyi yenile
-                showToast('Mesaj başarıyla silindi 🗑️', 'success');
+                messagesRef.child(msgId).remove().then(() => {
+                    closeModal();
+                    showParticipants(true); // Listeyi yenile
+                    showToast('Mesaj başarıyla silindi 🗑️', 'success');
+                });
             }
         }
 
-        // --- 7. HELPERS ---
+        // --- 8. HELPERS ---
         function showToast(text, type) {
             toast.textContent = text;
             toast.className = `toast show ${type}`;
@@ -751,7 +788,7 @@
             );
         }
 
-        // --- 7. BACKGROUND ANIMATION (Hareketli Yıldızlar) ---
+        // --- 9. BACKGROUND ANIMATION (Hareketli Yıldızlar) ---
         function createStars() {
             const container = document.getElementById('stars-container');
             // Yıldız sayısını arttırdım ki daha güzel görünsün
